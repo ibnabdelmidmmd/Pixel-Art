@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel-Art Editor</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#182230;background:#f3f5f9}*{box-sizing:border-box}body{margin:0;min-height:100vh}.app{max-width:1200px;margin:auto;padding:18px}.top{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:16px}.brand{font-size:25px;font-weight:800;color:#2563eb}.toolbar,.panel,.stage{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:14px;box-shadow:0 4px 16px #0f172a0a}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}button,.filelabel{border:1px solid #d7deea;background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer;font:inherit}button:hover,.filelabel:hover{background:#eff6ff;border-color:#93c5fd}button.active{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}input,select{accent-color:#2563eb}label{display:flex;align-items:center;gap:7px;font-size:14px}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:14px}.stage{min-height:600px;display:grid;place-items:center;overflow:auto;background-color:#e9edf4;background-image:linear-gradient(45deg,#dce2eb 25%,transparent 25%),linear-gradient(-45deg,#dce2eb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#dce2eb 75%),linear-gradient(-45deg,transparent 75%,#dce2eb 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}canvas{background:white;max-width:100%;height:auto;box-shadow:0 3px 20px #0f172a25;touch-action:none}.panel h3{margin:0 0 12px;font-size:16px}.panel label{justify-content:space-between;margin:12px 0}.panel input[type=range]{width:110px}.hint{color:#64748b;font-size:13px;line-height:1.6}.status{font-size:13px;color:#64748b;margin-top:12px}.hidden{display:none!important}@media(max-width:760px){.workspace{grid-template-columns:1fr}.stage{min-height:400px}.panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.panel h3,.hint{grid-column:1/-1}}
+</style>
+</head>
+<body><main class="app">
+<header class="top"><div class="brand">▦ Pixel-Art</div><button id="lang">العربية</button></header>
+<nav class="toolbar" aria-label="Tools">
+<button data-tool="brush" class="active" data-en="Brush" data-ar="فرشاة">Brush</button>
+<button data-tool="eraser" data-en="Eraser" data-ar="ممحاة">Eraser</button>
+<button data-tool="line" data-en="Line" data-ar="خط">Line</button>
+<button data-tool="rect" data-en="Rectangle" data-ar="مستطيل">Rectangle</button>
+<button data-tool="circle" data-en="Circle" data-ar="دائرة">Circle</button>
+<button data-tool="text" data-en="Text" data-ar="نص">Text</button>
+<label class="filelabel"><span data-en="Import image" data-ar="استيراد صورة">Import image</span><input id="file" type="file" accept="image/*" class="hidden"></label>
+<button id="undo" data-en="Undo" data-ar="تراجع">Undo</button><button id="clear" data-en="Clear" data-ar="مسح">Clear</button><button id="save" data-en="Export PNG" data-ar="تصدير PNG">Export PNG</button>
+</nav>
+<section class="workspace"><div class="stage"><canvas id="canvas" width="900" height="600"></canvas></div>
+<aside class="panel"><h3 data-en="Settings" data-ar="الإعدادات">Settings</h3>
+<label><span data-en="Color" data-ar="اللون">Color</span><input id="color" type="color" value="#202938"></label>
+<label><span data-en="Brush size" data-ar="حجم الفرشاة">Brush size</span><input id="size" type="range" min="1" max="80" value="8"></label>
+<label><span data-en="Pixel grid" data-ar="شبكة البكسل">Pixel grid</span><input id="grid" type="checkbox"></label>
+<p class="hint" data-en="Draw with your mouse or finger. Choose a tool, set its color and size, then export your artwork as PNG." data-ar="ارسم بالفأرة أو اللمس. اختر أداة وحدد اللون والحجم ثم صدّر عملك بصيغة PNG.">Draw with your mouse or finger. Choose a tool, set its color and size, then export your artwork as PNG.</p>
+<div class="status" id="status">Ready</div></aside></section>
+</main>
+<script>
+(()=>{'use strict';
+const c=document.getElementById('canvas'),ctx=c.getContext('2d'),$=id=>document.getElementById(id);
+let tool='brush',down=false,start=null,snapshot=null,history=[],lang='en';
+ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+function saveState(){history.push(ctx.getImageData(0,0,c.width,c.height));if(history.length>40)history.shift()}
+saveState();
+function pos(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+function style(){ctx.lineWidth=+$('size').value;ctx.strokeStyle=$('color').value;ctx.fillStyle=$('color').value;ctx.lineCap='round';ctx.lineJoin='round'}
+function begin(e){e.preventDefault();down=true;start=pos(e);snapshot=ctx.getImageData(0,0,c.width,c.height);style();if(tool==='brush'||tool==='eraser'){ctx.beginPath();ctx.moveTo(start.x,start.y);if(tool==='eraser'){ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(8,+$('size').value*2)}ctx.lineTo(start.x+.1,start.y+.1);ctx.stroke()}}
+function move(e){if(!down)return;const p=pos(e);style();if(tool==='brush'||tool==='eraser'){if(tool==='eraser'){ctx.strokeStyle='#fff';ctx.lineWidth=Math.max(8,+$('size').value*2)}ctx.lineTo(p.x,p.y);ctx.stroke();return}ctx.putImageData(snapshot,0,0);ctx.beginPath();if(tool==='line'){ctx.moveTo(start.x,start.y);ctx.lineTo(p.x,p.y);ctx.stroke()}else if(tool==='rect'){ctx.strokeRect(start.x,start.y,p.x-start.x,p.y-start.y)}else if(tool==='circle'){const r=Math.hypot(p.x-start.x,p.y-start.y);ctx.arc(start.x,start.y,r,0,Math.PI*2);ctx.stroke()}}
+function end(){if(!down)return;down=false;if(tool==='text'){const t=prompt(lang==='ar'?'اكتب النص':'Enter text');if(t){style();ctx.font='28px Arial';ctx.fillText(t,start.x,start.y)}}saveState();$('status').textContent=lang==='ar'?'تم التحديث':'Updated'}
+c.addEventListener('pointerdown',begin);c.addEventListener('pointermove',move);window.addEventListener('pointerup',end);
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));$('status').textContent=b.textContent});
+$('undo').onclick=()=>{if(history.length>1){history.pop();ctx.putImageData(history[history.length-1],0,0)}};
+$('clear').onclick=()=>{if(confirm(lang==='ar'?'مسح اللوحة؟':'Clear the canvas?')){ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);saveState()}};
+$('save').onclick=()=>{const a=document.createElement('a');a.download='pixel-art.png';a.href=c.toDataURL('image/png');a.click()};
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(c.width/im.width,c.height/im.height,1),w=im.width*s,h=im.height*s;ctx.drawImage(im,(c.width-w)/2,(c.height-h)/2,w,h);saveState();URL.revokeObjectURL(im.src)};im.src=URL.createObjectURL(f);e.target.value=''};
+$('lang').onclick=()=>{lang=lang==='en'?'ar':'en';document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';document.querySelectorAll('[data-en]').forEach(el=>el.textContent=el.dataset[lang]);document.querySelectorAll('[data-tool]').forEach(el=>el.textContent=el.dataset[lang]);$('lang').textContent=lang==='ar'?'English':'العربية';$('status').textContent=lang==='ar'?'جاهز':'Ready'};
+$('grid').onchange=()=>{$('status').textContent=lang==='ar'?'شبكة البكسل إعداد بصري':'Pixel grid option selected'};
+})();
+</script></body></html>
